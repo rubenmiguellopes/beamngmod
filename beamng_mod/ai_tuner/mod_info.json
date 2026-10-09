@@ -1,0 +1,8 @@
+{
+  "name": "ai_tuner",
+  "title": "AI Realtime Powertrain Tuner",
+  "version": "1.0.0",
+  "author": "Antigravity & Ruben",
+  "description": "Tune any engine, turbocharger, rev limiter, and clutch in real-time using AI natural language prompts directly from inside BeamNG.drive.",
+  "category": "Powertrain"
+}

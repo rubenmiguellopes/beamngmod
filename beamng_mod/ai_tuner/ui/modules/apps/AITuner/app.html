@@ -1,0 +1,326 @@
+<div class="bngApp ai-tuner-container" style="width: 100%; height: 100%;">
+  <style>
+    .ai-tuner-container {
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      background: rgba(18, 22, 28, 0.94);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 102, 0, 0.3);
+      border-radius: 8px;
+      color: #f0f3f6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding: 12px;
+      overflow-y: auto;
+      user-select: none;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    }
+
+    .ai-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+
+    .ai-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #ff6600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ai-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+
+    .ai-badge.online {
+      background: rgba(46, 204, 113, 0.18);
+      color: #2ecc71;
+      border: 1px solid rgba(46, 204, 113, 0.4);
+    }
+
+    .ai-badge.offline {
+      background: rgba(231, 76, 60, 0.18);
+      color: #e74c3c;
+      border: 1px solid rgba(231, 76, 60, 0.4);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .ai-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .ai-textarea {
+      width: 100%;
+      box-sizing: border-box;
+      background: rgba(10, 12, 16, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 6px;
+      padding: 9px;
+      color: #ffffff;
+      font-size: 13px;
+      resize: vertical;
+      min-height: 54px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .ai-textarea:focus {
+      border-color: #ff6600;
+      box-shadow: 0 0 8px rgba(255, 102, 0, 0.35);
+    }
+
+    .ai-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .ai-btn-primary {
+      flex: 3;
+      background: linear-gradient(135deg, #ff6600, #ff8533);
+      border: none;
+      border-radius: 6px;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 9px 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.1s, filter 0.2s;
+      box-shadow: 0 4px 12px rgba(255, 102, 0, 0.35);
+    }
+
+    .ai-btn-primary:hover:not(:disabled) {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    .ai-btn-primary:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .ai-btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      filter: grayscale(0.5);
+    }
+
+    .ai-btn-secondary {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 6px;
+      color: #dcdcdc;
+      font-weight: 600;
+      font-size: 12px;
+      padding: 9px 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .ai-btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.16);
+      color: #ffffff;
+    }
+
+    .ai-presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    .ai-preset-chip {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 11px;
+      color: #c9d1d9;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .ai-preset-chip:hover {
+      background: rgba(255, 102, 0, 0.2);
+      border-color: rgba(255, 102, 0, 0.5);
+      color: #ffffff;
+    }
+
+    .ai-status-card {
+      background: rgba(10, 13, 18, 0.7);
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+      font-size: 12px;
+      line-height: 1.4;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-left: 3px solid #7f8c8d;
+    }
+
+    .ai-status-card.idle {
+      border-left-color: #3498db;
+      color: #bdc3c7;
+    }
+
+    .ai-status-card.loading {
+      border-left-color: #f39c12;
+      color: #f1c40f;
+    }
+
+    .ai-status-card.success {
+      border-left-color: #2ecc71;
+      color: #2ecc71;
+    }
+
+    .ai-status-card.error {
+      border-left-color: #e74c3c;
+      color: #ff6b6b;
+    }
+
+    .ai-grid-specs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .ai-spec-box {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 6px;
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ai-spec-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #8b949e;
+    }
+
+    .ai-spec-val {
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-top: 2px;
+    }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-top-color: #ff6600;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+
+  <!-- Cabeçalho -->
+  <div class="ai-header">
+    <div class="ai-title">
+      <span>⚡ AI Powertrain Tuner</span>
+    </div>
+    <div class="ai-badge" ng-class="backendOnline ? 'online' : 'offline'" ng-click="checkBackendHealth()" title="Clique para verificar conexão">
+      <div class="status-dot"></div>
+      <span>{{ backendOnline ? 'IA Ativa' : 'Offline' }}</span>
+    </div>
+  </div>
+
+  <!-- Entrada de Texto -->
+  <div class="ai-input-group">
+    <textarea 
+      class="ai-textarea" 
+      rows="2" 
+      ng-model="prompt" 
+      ng-disabled="isLoading" 
+      ng-keypress="$event.keyCode === 13 && !$event.shiftKey && (tune() || $event.preventDefault())"
+      placeholder="Ex: carro com 1100hp e turbo a 35 psi, corte a 8500 rpm..."
+    ></textarea>
+    
+    <div class="ai-actions">
+      <button class="ai-btn-primary" ng-click="tune()" ng-disabled="isLoading">
+        <span ng-if="!isLoading">⚡ Tunar com IA</span>
+        <span ng-if="isLoading" style="display: flex; align-items: center; gap: 6px;">
+          <div class="spinner"></div> Processando...
+        </span>
+      </button>
+      <button class="ai-btn-secondary" ng-click="restoreStock()" title="Restaurar parâmetros de fábrica do carro">
+        ↺ Stock
+      </button>
+    </div>
+  </div>
+
+  <!-- Presets Rápidos -->
+  <div class="ai-presets">
+    <div 
+      class="ai-preset-chip" 
+      ng-repeat="p in presets" 
+      ng-click="usePreset(p.text)"
+    >
+      {{ p.label }}
+    </div>
+  </div>
+
+  <!-- Caixa de Status -->
+  <div class="ai-status-card" ng-class="statusType">
+    <span ng-if="statusType === 'loading'" class="spinner"></span>
+    <span ng-if="statusType === 'success'">✓</span>
+    <span ng-if="statusType === 'error'">⚠</span>
+    <span style="flex: 1;">{{ status }}</span>
+  </div>
+
+  <!-- Painel de Telemetria / Parâmetros Injetados -->
+  <div class="ai-grid-specs" ng-if="lastTune">
+    <div class="ai-spec-box">
+      <span class="ai-spec-label">Multiplicador Torque</span>
+      <span class="ai-spec-val" style="color: #ff9933;">x{{ lastTune.torqueModMult }}</span>
+    </div>
+    <div class="ai-spec-box">
+      <span class="ai-spec-label">Wastegate Turbo</span>
+      <span class="ai-spec-val" style="color: #3498db;">{{ lastTune.wastegateStartPSI }} PSI</span>
+    </div>
+    <div class="ai-spec-box">
+      <span class="ai-spec-label">Corte de Rotação</span>
+      <span class="ai-spec-val" style="color: #e74c3c;">{{ lastTune.maxRPM }} RPM</span>
+    </div>
+    <div class="ai-spec-box">
+      <span class="ai-spec-label">Embraiagem Reforçada</span>
+      <span class="ai-spec-val" style="color: #2ecc71;">{{ lastTune.clutchTorque }} Nm</span>
+    </div>
+  </div>
+</div>

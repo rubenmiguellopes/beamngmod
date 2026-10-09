@@ -1,0 +1,23 @@
+{
+  "domElement": "<ai-tuner></ai-tuner>",
+  "name": "AI Dyno Tuner",
+  "types": [
+    "ui.apps.categories.powertrain",
+    "ui.apps.categories.vehicle_control",
+    "ui.apps.categories.utility"
+  ],
+  "css": {
+    "min-width": "340px",
+    "min-height": "280px",
+    "width": "390px",
+    "height": "430px",
+    "left": "20px",
+    "top": "120px"
+  },
+  "description": "Prepara motores, turbos e corte de RPM em tempo real com prompts de Inteligência Artificial.",
+  "author": "Antigravity & Ruben",
+  "version": "1.0",
+  "directive": "aiTuner",
+  "category": "Powertrain",
+  "isAuxiliary": false
+}
