@@ -110,6 +110,75 @@ def health_check():
         "endpoint": client_kwargs.get("base_url")
     }), 200
 
+def heuristic_fallback_tune(prompt: str) -> dict:
+    prompt_lower = prompt.lower()
+    torque_mult = 1.5
+    wastegate = 15.0
+    rpm = 7500
+    clutch = 1200
+    summary_parts = []
+    
+    # Deteta HP / Cavalos
+    hp_match = re.search(r'(\d{2,4})\s*(?:hp|cv|bhp|cavalos)', prompt_lower)
+    if hp_match:
+        target_hp = int(hp_match.group(1))
+        torque_mult = max(0.4, min(7.0, target_hp / 300.0))
+        clutch = max(600, min(3800, int(target_hp * 1.5)))
+        summary_parts.append(f"{target_hp}hp")
+        if target_hp > 500 and "bar" not in prompt_lower and "psi" not in prompt_lower:
+            wastegate = min(60.0, (target_hp - 300) / 20.0 + 10.0)
+
+    # Deteta PSI / Turbo
+    psi_match = re.search(r'(\d{1,2}(?:\.\d+)?)\s*(?:psi|bar|libras)', prompt_lower)
+    if psi_match:
+        val = float(psi_match.group(1))
+        if "bar" in prompt_lower and val < 6:
+            val = val * 14.5
+        wastegate = max(0.0, min(75.0, val))
+        summary_parts.append(f"{wastegate:.1f} PSI")
+    elif "aspirado" in prompt_lower or "na" in prompt_lower or "sem turbo" in prompt_lower:
+        wastegate = 0.0
+        summary_parts.append("aspirado")
+
+    # Deteta RPM
+    rpm_match = re.search(r'(\d{4,5})\s*(?:rpm|corte)', prompt_lower)
+    if rpm_match:
+        rpm = max(4500, min(12000, int(rpm_match.group(1))))
+        summary_parts.append(f"corte a {rpm} RPM")
+    elif "drift" in prompt_lower:
+        rpm = 8200
+    elif "gt3" in prompt_lower or "race" in prompt_lower:
+        rpm = 8500
+
+    # Perfis temáticos
+    if "drift" in prompt_lower:
+        if not hp_match:
+            torque_mult = 1.85
+            wastegate = 22.0
+            clutch = 1300
+        summary_parts.insert(0, "Setup Drift")
+    elif "drag" in prompt_lower:
+        if not hp_match:
+            torque_mult = 3.2
+            wastegate = 40.0
+            clutch = 2400
+        summary_parts.insert(0, "Setup Drag")
+    elif "eco" in prompt_lower or "econom" in prompt_lower:
+        torque_mult = 0.75
+        wastegate = 0.0
+        rpm = 5200
+        clutch = 750
+        summary_parts = ["Modo Eco"]
+
+    summary_desc = ", ".join(summary_parts) if summary_parts else "Afinação dinâmica"
+    return sanitize_tune_data({
+        "torqueModMult": torque_mult,
+        "wastegateStartPSI": wastegate,
+        "maxRPM": rpm,
+        "clutchTorque": clutch,
+        "summary": f"{summary_desc} (Powertrain ajustado)"
+    })
+
 @app.route("/tune", methods=["POST"])
 def tune_vehicle():
     try:
@@ -127,38 +196,44 @@ def tune_vehicle():
                 "error": "O prompt não pode estar vazio."
             }), 400
 
-        logger.info(f"Processando prompt com IA Local ({MODEL_NAME}): '{user_prompt}'")
+        logger.info(f"Processando prompt: '{user_prompt}'")
 
-        # Chamada ao modelo local via Ollama / OpenAI API format
-        response = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.2,
-            max_tokens=300
-        )
+        try:
+            # Tentar processar com modelo IA (Ollama ou Cloud)
+            response = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.2,
+                max_tokens=300
+            )
 
-        raw_content = response.choices[0].message.content or "{}"
-        logger.info(f"Resposta bruta da IA: {raw_content}")
+            raw_content = response.choices[0].message.content or "{}"
+            logger.info(f"Resposta bruta da IA: {raw_content}")
 
-        parsed_json = extract_json(raw_content)
-        sanitized_data = sanitize_tune_data(parsed_json)
+            parsed_json = extract_json(raw_content)
+            sanitized_data = sanitize_tune_data(parsed_json)
 
-        return jsonify({
-            "success": True,
-            "data": sanitized_data
-        }), 200
+            return jsonify({
+                "success": True,
+                "data": sanitized_data,
+                "engine": "llm"
+            }), 200
+
+        except Exception as ai_err:
+            logger.warning(f"IA indisponível ({ai_err}). Ativando motor de afinação heurístico local.")
+            fallback_data = heuristic_fallback_tune(user_prompt)
+            return jsonify({
+                "success": True,
+                "data": fallback_data,
+                "engine": "heuristic"
+            }), 200
 
     except Exception as exc:
         err_msg = str(exc)
-        logger.error(f"Erro ao processar tune: {err_msg}", exc_info=True)
-        
-        # Detecção de Ollama offline ou erro de conexão local
-        if isinstance(exc, (openai.APIConnectionError, ConnectionError)) or "Connection error" in err_msg or "11434" in err_msg:
-            err_msg = "Ollama local offline! Inicia o Ollama no Windows ou executa 'instalar_ia_local.bat' (modelo llama3.2)."
-
+        logger.error(f"Erro fatal ao processar tune: {err_msg}", exc_info=True)
         return jsonify({
             "success": False,
             "error": err_msg

@@ -28,6 +28,9 @@ if exist "%LOCALAPPDATA%\BeamNG\BeamNG.drive.ini" (
         if /i "!KEY!"=="userFolder" (
             set "TARGET_DIR=!VAL:~1!"
             set "TARGET_DIR=!TARGET_DIR: =!"
+            if exist "!TARGET_DIR!\current\mods" (
+                set "TARGET_DIR=!TARGET_DIR!\current"
+            )
         )
     )
 )
@@ -49,6 +52,7 @@ echo "!TARGET_DIR!"
 echo.
 
 set "DEST_UNPACKED=!TARGET_DIR!\mods\unpacked\ai_tuner"
+set "DEST_ZIP=!TARGET_DIR!\mods\ai_tuner.zip"
 
 echo Criando pasta do mod em:
 echo "!DEST_UNPACKED!"
@@ -60,6 +64,9 @@ if not exist "!DEST_UNPACKED!" (
 
 echo Copiando ficheiros do mod...
 xcopy /E /I /Y /Q "%SOURCE_MOD%\*" "!DEST_UNPACKED!\"
+
+echo Gerando pacote ai_tuner.zip para o Gestor de Mods...
+powershell -Command "Compress-Archive -Path '%SOURCE_MOD%\*' -DestinationPath '!DEST_ZIP!' -Force" 2>nul
 
 if %ERRORLEVEL% EQU 0 (
     echo.
