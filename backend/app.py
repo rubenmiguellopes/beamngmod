@@ -24,6 +24,24 @@ logger = logging.getLogger("AITunerBackend")
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, *"
+    response.headers["Access-Control-Allow-Private-Network"] = "true"
+    return response
+
+@app.route("/", defaults={"path": ""}, methods=["OPTIONS"])
+@app.route("/<path:path>", methods=["OPTIONS"])
+def handle_options_preflight(path):
+    res = app.make_default_options_response()
+    res.headers["Access-Control-Allow-Origin"] = "*"
+    res.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE"
+    res.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, *"
+    res.headers["Access-Control-Allow-Private-Network"] = "true"
+    return res, 204
+
 # Configuração Padrão: Ollama Local (Gratuito e sem limites)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "ollama")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "http://localhost:11434/v1")
